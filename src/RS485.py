@@ -49,6 +49,9 @@ def sensor_read(ser):
             value_hex = received_data_hex[6:-4]
             value_bytes = bytes.fromhex(value_hex)
             value = struct.unpack('>f', value_bytes)[0]
+            value = value * 9.81
+            if value < 0:
+                value = 0
             return round(value, 3)
         else:
             print("No data received.")
@@ -60,4 +63,4 @@ def sensor_read(ser):
 def sensor_close(ser):
     if ser and ser.is_open:
         ser.close()
-        print(f"Serial port {serial_port} closed.")
+        print(f"Serial port {ser} closed.")
