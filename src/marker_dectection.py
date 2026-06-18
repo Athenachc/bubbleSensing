@@ -1,4 +1,5 @@
 import cv2
+import math
 import numpy as np
 import setting
 
@@ -47,7 +48,7 @@ def marker_center(mask, frame):
         x,y,w,h = cv2.boundingRect(contour)
         AreaCount=cv2.contourArea(contour)
         # print(AreaCount)
-        if AreaCount>areaThresh1 and AreaCount<areaThresh2 and abs(np.max([w, h]) * 1.0 / np.min([w, h]) - 1) < 1 and x>30 and x<275 and y>12 and y<230: 
+        if AreaCount>areaThresh1 and AreaCount<areaThresh2 and abs(np.max([w, h]) * 1.0 / np.min([w, h]) - 1) < 1 and x>30 and x<275: 
             t=cv2.moments(contour)
             # print("moments", t)
             # MarkerCenter=np.append(MarkerCenter,[[t['m10']/t['m00'], t['m01']/t['m00'], AreaCount]],axis=0)
@@ -71,6 +72,37 @@ def draw_flow(frame, flow):
             if Occupied[i][j] <= -1:
                 color = (127, 127, 255)
             cv2.arrowedLine(frame, pt1, pt2, color, 2,  tipLength=0.2)
+
+
+def get_flow_magnitude(flow):
+    Ox, Oy, Cx, Cy, Occupied = flow
+    magnitude = 0
+    for i in range(len(Ox)):
+        for j in range(len(Ox[i])):
+            pt1 = (int(Ox[i][j]), int(Oy[i][j]))
+            pt2 = (int(Cx[i][j]), int(Cy[i][j]))
+            magnitude += math.sqrt((pt2[0] - pt1[0]) ** 2 + (pt2[1] - pt1[1]) ** 2)
+    return round(magnitude, 3)
+    
+def get_flow_vector(flow, center):
+    Ox, Oy, Cx, Cy, Occupied = flow
+    summed_vector = np.array([0, 0])
+    for i in range(len(Ox)):
+        for j in range(len(Ox[i])):
+            pt1 = (int(Ox[i][j]), int(Oy[i][j]))
+            pt2 = (int(Cx[i][j]), int(Cy[i][j]))
+            vector = np.array([round(pt2[0] - pt1[0], 3), round(pt2[1] - pt1[1], 3)])
+            summed_vector += vector
+    return summed_vector
+    
+def get_flow_center(flow, center):
+    Ox, Oy, Cx, Cy, Occupied = flow
+    magnitude_center = 0
+    for i in range(len(Ox)):
+        for j in range(len(Ox[i])):
+            pt1 = (int(Ox[i][j]), int(Oy[i][j]))
+            magnitude_center += math.sqrt((pt1[0] - center[0]) ** 2 + (pt1[1] - center[1]) ** 2)
+    return round(magnitude_center, 3)
 
 
 def warp_perspective(img):

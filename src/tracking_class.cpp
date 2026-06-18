@@ -60,7 +60,7 @@ void Matching::init(std::vector<std::vector<double>> centers) {
         C[i].x = centers[i][0];
         C[i].y = centers[i][1];
         C[i].id = i;
-        std::cout<<C[i].x<<" "<<C[i].y<<" "<<std::endl;
+        //std::cout<<C[i].x<<" "<<C[i].y<<" "<<std::endl;
     }
 
     // init arrays for search

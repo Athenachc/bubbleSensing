@@ -83,4 +83,3 @@ output: (Ox, Oy, Cx, Cy, Occupied) = flow
     Occupied: N*M matrix, the index of the marker at each position, -1 means inferred. 
         e.g. Occupied[i][j] = k, meaning the marker mc[k] lies in row i, column j.
 ```
-

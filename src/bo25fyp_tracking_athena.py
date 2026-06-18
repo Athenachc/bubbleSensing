@@ -16,7 +16,7 @@ if len(sys.argv) > 1:
 
 gelsight_version = 'Bnz'
 
-cap = cv2.VideoCapture(5)
+cap = cv2.VideoCapture(4)
 
 setting.init()
 RESCALE = setting.RESCALE
@@ -53,8 +53,8 @@ for i in mc:
     file_center.write(str(i) + ', ')
 file_center.close()
 
-#file_sensor = open("Sensor/sensor.txt", "w")
-#num = 1
+file_sensor = open("Sensor/sensor.txt", "w")
+num = 1
 
 while(True):
 
@@ -71,6 +71,9 @@ while(True):
 
     # find marker masks
     mask = marker_dectection.find_marker(frame)
+
+    height, width, _ = frame.shape
+    camera_center = (width/2, height/2)
 
     # find marker centers
     mc = marker_dectection.marker_center(mask, frame)
@@ -89,14 +92,17 @@ while(True):
 
         # draw flow
         marker_dectection.draw_flow(frame, flow)
+
+        vector = marker_dectection.get_flow_vector(flow, camera_center)
+        file_sensor.write(str(num) + ", " + str(marker_dectection.get_flow_magnitude(flow)) + ", "
+                        + str(vector[0]) + ", " + str(vector[1]) + ", " + str(marker_dectection.get_flow_center(flow, camera_center)) + '\n')
+        #cv2.imwrite("Sensor/frame" + str(num) + ".jpg", frame)
+        num += 1
         
         
     mask_img = mask.astype(frame[0].dtype)
     mask_img = cv2.merge((mask_img, mask_img, mask_img))
     #RS485.sensor_send(sensor, getdata1)
-    #file_sensor.write(str(num) + ": " + str(RS485.sensor_read(sensor)) + '\n')
-    #cv2.imwrite("Sensor/frame" + str(num) + ".jpg", frame)
-    #num += 1
 
     #cv2.imshow('raw',frame_raw)
     cv2.imshow('frame',frame)
