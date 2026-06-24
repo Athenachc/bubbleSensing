@@ -2,12 +2,12 @@
 import matplotlib.pyplot as plt
 import re
 import numpy as np
+import csv
 
 shear_coefficient = 0.41
 
 number = []
 magnitude = []
-normal_force_sensor_value = []
 center_distance = []
 vectors_x = []
 vectors_y = []
@@ -22,18 +22,15 @@ radio_S2 = []
 error_N = []
 error_S = []
 
-with open('Sensor/sensor.txt', 'r') as file:
-    for line in file:
+with open('src/Sensor/data_20260622_222000.csv', 'r', encoding="utf-8") as file:
+    reader = csv.reader(file)
+    next(reader, None)
+    for line in reader:
         # Create 6 empty lists for the 6 columns
-        column_vectors = [[] for _ in range(6)]
-        
-        parts = line.strip().split(', ', 5)
-        number.append(int(parts[0].strip()))
-        normal_force_sensor_value.append(float(parts[1].strip()))
-        magnitude.append(float(parts[2].strip()))
-        vectors_x.append(float(parts[3].strip()))
-        vectors_y.append(float(parts[4].strip()))
-
+        number.append(int(line[0]))
+        magnitude.append(float(line[1]))
+        vectors_x.append(float(line[2]))
+        vectors_y.append(float(line[3]))
         # Calculate means
         vector_mean_x.append(float(np.mean(vectors_x)))
         vector_mean_x_inv.append(-float(np.mean(vectors_x)))
@@ -53,12 +50,12 @@ with open('Sensor/sensor.txt', 'r') as file:
         new_magnitude.append(float(np.sum(tmp)))
 
 # Calculate ratios
-nf = float(np.sum(normal_force_sensor_value))
-nm = float(np.sum(magnitude))
-if nf == 0 or nm == 0:
-    radio_N.append(0)
-else:
-    radio_N.append(nf / nm)
+#nf = float(np.sum(normal_force_sensor_value))
+#nm = float(np.sum(new_magnitude))
+#if nf == 0 or nm == 0:
+#    radio_N.append(0)
+#else:
+#    radio_N.append(nf / nm)
 
 #sf = float(np.sum(shear_force_sensor_value))
 #sm = float(np.sum(vector_mean_x))
@@ -75,63 +72,63 @@ else:
 #     radio_S2.append(sf / sm2)
 
 # Scale values for comparison
-new_magnitude_plus = [i * 0.00969 for i in magnitude]
+new_magnitude_plus = [i for i in new_magnitude]
 vector_mean_x_plus = [i for i in vector_mean_x]
 #compare_org_plus = [i * shear_coefficient for i in compare_org]
 
 # Calculate errors
-error_N = [new_magnitude_plus[i] - normal_force_sensor_value[i] for i in range(len(normal_force_sensor_value))]
+#error_N = [new_magnitude_plus[i] - normal_force_sensor_value[i] for i in range(len(normal_force_sensor_value))]
 #error_S = [vector_mean_x_plus[i] - shear_force_sensor_value[i] for i in range(len(shear_force_sensor_value))]
 
-print('\n')
-print("radio_N: ", np.mean(radio_N))
-print('\n')
+# print('\n')
+# print("radio_N: ", np.mean(radio_N))
+# print('\n')
 # print("radio_S: ", radio_S)
 # print('\n')
 # print("radio_S2: ", radio_S2)
 # print('\n')
 
 # Create plots
-fig, axs = plt.subplots(2, 1, figsize=(10, 12))
+fig, axs = plt.subplots(5, 1, figsize=(10, 12))
 
 # Plot 1: Normal Force comparison
 axs[0].plot(number, new_magnitude_plus, marker='o', linestyle='-', color='r', linewidth=2, markersize=2, label='Calculated')
-axs[0].plot(number, normal_force_sensor_value, marker='o', linestyle='-', color='b', linewidth=2, markersize=2, label='Sensor')
+#axs[0].plot(number, normal_force_sensor_value, marker='o', linestyle='-', color='b', linewidth=2, markersize=2, label='Sensor')
 axs[0].set_title('Normal Force vs Frame')
 axs[0].set_xlabel('Frame (ticks)')
 axs[0].set_ylabel('Normal Force (Newton)')
 axs[0].legend()
 axs[0].grid()
 
-# Plot 2: Normal Force Error
-axs[1].plot(number, error_N, marker='o', linestyle='-', color='g', linewidth=2, markersize=2)
-axs[1].set_title('Normal Force Error vs Frame')
-axs[1].set_xlabel('Frame (ticks)')
-axs[1].set_ylabel('Error (N)')
-axs[1].grid()
-
-# # Plot 3: Shear Force comparison
-# axs[1].plot(number, vector_mean_x_plus, marker='o', linestyle='-', color='r', linewidth=2, markersize=2, label='Calculated')
-# #axs[1].plot(number, shear_force_sensor_value, marker='o', linestyle='-', color='b', linewidth=2, markersize=2, label='Sensor')
-# axs[1].set_title('Shear Force vs Frame')
+# # Plot 2: Normal Force Error
+# axs[1].plot(number, error_N, marker='o', linestyle='-', color='g', linewidth=2, markersize=2)
+# axs[1].set_title('Normal Force Error vs Frame')
 # axs[1].set_xlabel('Frame (ticks)')
-# axs[1].set_ylabel('Shear Force (Newton)')
-# axs[1].legend()
+# axs[1].set_ylabel('Error (N)')
 # axs[1].grid()
 
-# # # Plot 4: Shear Force Error
-# # axs[3].plot(number, error_S, marker='o', linestyle='-', color='y', linewidth=2, markersize=2)
-# # axs[3].set_title('Shear Force Error vs Frame')
-# # axs[3].set_xlabel('Frame (ticks)')
-# # axs[3].set_ylabel('Error (N)')
-# # axs[3].grid()
+# Plot 3: Shear Force comparison
+axs[1].plot(number, vector_mean_x_plus, marker='o', linestyle='-', color='r', linewidth=2, markersize=2, label='Calculated')
+#axs[1].plot(number, shear_force_sensor_value, marker='o', linestyle='-', color='b', linewidth=2, markersize=2, label='Sensor')
+axs[1].set_title('Shear Force vs Frame')
+axs[1].set_xlabel('Frame (ticks)')
+axs[1].set_ylabel('Shear Force (Newton)')
+axs[1].legend()
+axs[1].grid()
 
-# # Plot 5: Original Magnitude
-# axs[2].plot(number, magnitude, marker='o', linestyle='-', color='g', linewidth=3, markersize=3)
-# axs[2].set_title('Raw Magnitude vs Frame')
-# axs[2].set_xlabel('Frame (ticks)')
-# axs[2].set_ylabel('Magnitude (Pixels)')
-# axs[2].grid()
+# # Plot 4: Shear Force Error
+# axs[3].plot(number, error_S, marker='o', linestyle='-', color='y', linewidth=2, markersize=2)
+# axs[3].set_title('Shear Force Error vs Frame')
+# axs[3].set_xlabel('Frame (ticks)')
+# axs[3].set_ylabel('Error (N)')
+# axs[3].grid()
+
+# Plot 5: Original Magnitude
+axs[2].plot(number, magnitude, marker='o', linestyle='-', color='g', linewidth=3, markersize=3)
+axs[2].set_title('Raw Magnitude vs Frame')
+axs[2].set_xlabel('Frame (ticks)')
+axs[2].set_ylabel('Magnitude (Pixels)')
+axs[2].grid()
 
 fig.tight_layout()
 plt.show()

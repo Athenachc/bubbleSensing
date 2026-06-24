@@ -6,6 +6,11 @@ import sys
 import setting
 import time
 import threading
+import RS485
+
+serial_port = '/dev/ttyUSB0'  #'/dev/ttyUSB0' or 'COM11'
+reset = bytes([0x01, 0x10, 0x46, 0x08, 0x00, 0x02, 0x04, 0x00, 0x00, 0x00, 0x00, 0xE8, 0x6A])
+getdata1 = bytes([0x01, 0x04, 0x00, 0x0E, 0x00, 0x02, 0x10, 0x08])
 
 calibrate = False
 
@@ -19,6 +24,7 @@ gelsight_version = 'Bnz'
 cap = cv2.VideoCapture(4)
 
 setting.init()
+sensor = RS485.sensor_init(serial_port, reset)
 RESCALE = setting.RESCALE
 
 m = find_marker.Matching(
@@ -94,9 +100,9 @@ while(True):
         marker_dectection.draw_flow(frame, flow)
 
         vector = marker_dectection.get_flow_vector(flow, camera_center)
-        file_sensor.write(str(num) + ", " + str(marker_dectection.get_flow_magnitude(flow)) + ", "
-                        + str(vector[0]) + ", " + str(vector[1]) + ", " + str(marker_dectection.get_flow_center(flow, camera_center)) + '\n')
-        #cv2.imwrite("Sensor/frame" + str(num) + ".jpg", frame)
+        RS485.sensor_send(sensor, getdata1)
+        file_sensor.write(str(num) + ", " + str(RS485.sensor_read(sensor)) + ", " + str(marker_dectection.get_flow_magnitude(flow)) + ", " + str(vector[0]) + ", " + str(vector[1]) + ", " + str(marker_dectection.get_flow_center(flow, camera_center)) + '\n')
+        cv2.imwrite("Sensor/frame" + str(num) + ".jpg", frame)
         num += 1
         
         
