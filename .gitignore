@@ -2,3 +2,9 @@ src/lib
 src/__pycache__
 .DS_Store
 *.mp4
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.csv
+*.zip
