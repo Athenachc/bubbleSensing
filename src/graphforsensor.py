@@ -1,10 +1,10 @@
-
 import matplotlib.pyplot as plt
 import re
 import numpy as np
 
 shear_coefficient = 0.41
 
+# Initialize lists to store data parsed from the sensor file
 number = []
 magnitude = []
 normal_force_sensor_value = []
@@ -22,12 +22,17 @@ radio_S2 = []
 error_N = []
 error_S = []
 
-with open('Sensor/sensor.txt', 'r') as file:
+# 1. DATA LOADING AND PARSING
+# Read the file line by line, skipping the header or parsing the CSV format
+# with open('Sensor/sensor.txt', 'r') as file:
+with open('Sensor_set/Sensor_20260624_1/sensor.txt', 'r') as file:
+
     for line in file:
         # Create 6 empty lists for the 6 columns
         column_vectors = [[] for _ in range(6)]
-        
+        # Split string by comma to separate columns (Frame, NF, Mag, VecX, VecY)
         parts = line.strip().split(', ', 5)
+        # Append the values to the corresponding lists
         number.append(int(parts[0].strip()))
         normal_force_sensor_value.append(float(parts[1].strip()))
         magnitude.append(float(parts[2].strip()))
@@ -45,14 +50,18 @@ with open('Sensor/sensor.txt', 'r') as file:
         mean_x = float(np.mean(vectors_x))
         mean_y = float(np.mean(vectors_y)) if vectors_y else 0.0
 
+        # Create a coordinate array of all vectors read so far
+        # Subtract the mean to normalize the displacement (zero-center the data)
         new_vector = np.array([vectors_x, vectors_y]).T
         new_vector[:, 0] -= mean_x
         new_vector[:, 1] -= mean_y
         
+        # Sum the Euclidean distances (magnitudes) of the normalized vectors
         tmp = [np.sqrt(np.square(vec[0]) + np.square(vec[1])) for vec in new_vector]
         new_magnitude.append(float(np.sum(tmp)))
 
 # Calculate ratios
+# Calculate calibration ratios between the raw magnitude and sensor output
 nf = float(np.sum(normal_force_sensor_value))
 nm = float(np.sum(magnitude))
 if nf == 0 or nm == 0:
@@ -76,10 +85,10 @@ else:
 
 # Scale values for comparison
 new_magnitude_plus = [i * 0.00969 for i in magnitude]
-vector_mean_x_plus = [i for i in vector_mean_x]
+vector_mean_x_plus = [i for i in vector_mean_x]                         # Compute error between calculated force and actual sensor feedback
 #compare_org_plus = [i * shear_coefficient for i in compare_org]
 
-# Calculate errors
+# Calculate errors (Compute error between calculated force and actual sensor feedback)
 error_N = [new_magnitude_plus[i] - normal_force_sensor_value[i] for i in range(len(normal_force_sensor_value))]
 #error_S = [vector_mean_x_plus[i] - shear_force_sensor_value[i] for i in range(len(shear_force_sensor_value))]
 
