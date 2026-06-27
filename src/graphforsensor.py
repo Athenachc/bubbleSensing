@@ -25,7 +25,8 @@ error_S = []
 # 1. DATA LOADING AND PARSING
 # Read the file line by line, skipping the header or parsing the CSV format
 # with open('Sensor/sensor.txt', 'r') as file:
-with open('Sensor_set/Sensor_20260624_1/sensor.txt', 'r') as file:
+# with open('Sensor_set/Sensor_20260624_1/sensor.txt', 'r') as file:
+with open('Sensor/Trial_20260627_174501/sensor.txt', 'r') as file:
 
     for line in file:
         # Create 6 empty lists for the 6 columns
@@ -84,7 +85,9 @@ else:
 #     radio_S2.append(sf / sm2)
 
 # Scale values for comparison
-new_magnitude_plus = [i * 0.00969 for i in magnitude]
+# new_magnitude_plus = [i * 0.00969 for i in magnitude]
+# new_magnitude_plus = [i * 0.009100555113186701 for i in magnitude]
+new_magnitude_plus = [i * 0.00929951120529139 for i in magnitude]
 vector_mean_x_plus = [i for i in vector_mean_x]                         # Compute error between calculated force and actual sensor feedback
 #compare_org_plus = [i * shear_coefficient for i in compare_org]
 
