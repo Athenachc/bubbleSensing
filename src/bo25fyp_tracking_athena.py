@@ -32,7 +32,7 @@ def main():
 
     setting.init()
     sensor = RS485.sensor_init(serial_port, reset)
-    cap = cv2.VideoCapture(4)
+    cap = cv2.VideoCapture(0)
     # VIDEO WRITER SETUP
     fourcc = cv2.VideoWriter_fourcc(*'XVID')
     out_path = os.path.join(trial_folder, 'output.mp4')
