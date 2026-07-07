@@ -32,7 +32,7 @@ def main():
 
     setting.init()
     sensor = RS485.sensor_init(serial_port, reset)
-    cap = cv2.VideoCapture(0)
+    cap = cv2.VideoCapture(4)
     # VIDEO WRITER SETUP
     fourcc = cv2.VideoWriter_fourcc(*'XVID')
     out_path = os.path.join(trial_folder, 'output.mp4')
@@ -91,7 +91,7 @@ def main():
             camera_center = (width/2, height/2)
             # find marker centers
             mc = marker_dectection.marker_center(mask, frame)
-            
+
             if not calibrate:
                 tm = time.time()
                 m.init(mc)
@@ -107,8 +107,17 @@ def main():
                 RS485.sensor_send(sensor, getdata1)
                 # file_sensor.write(str(num) + ", " + str(RS485.sensor_read(sensor)) + ", " + str(marker_dectection.get_flow_magnitude(flow)) + ", " + str(vector[0]) + ", " + str(vector[1]) + ", " + str(marker_dectection.get_flow_center(flow, camera_center)) + '\n')
                 sensor_val = RS485.sensor_read(sensor)
+                # Call your modified function
+                all_marker_data = marker_dectection.get_flow_vector(flow, (frame.shape[1]/2, frame.shape[0]/2))
 
-                file_sensor.write(f"{num}, {sensor_val}, {marker_dectection.get_flow_magnitude(flow)}, {vector[0]}, {vector[1]}, {marker_dectection.get_flow_center(flow, (frame.shape[1]/2, frame.shape[0]/2))}\n")
+                # Convert the array to a comma-separated string
+                # This turns [x1, y1, x2, y2...] into "x1, y1, x2, y2..."
+                data_str = ", ".join([f"{val:.2f}" for val in all_marker_data])
+
+                # Write everything in one line
+                file_sensor.write(f"{num}, {sensor_val}, {marker_dectection.get_flow_magnitude(flow)}, {data_str}\n")
+                # file_sensor.write(f"{num}, {sensor_val}, {marker_dectection.get_flow_magnitude(flow)}, {marker_dectection.get_flow_vector(flow, (frame.shape[1]/2, frame.shape[0]/2))}\n")
+                # file_sensor.write(f"{num}, {sensor_val}, {marker_dectection.get_flow_magnitude(flow)}, {vector[0]}, {vector[1]}, {marker_dectection.get_flow_center(flow, (frame.shape[1]/2, frame.shape[0]/2))}\n")
                 cv2.imwrite(os.path.join(trial_folder, f"frame{num}.jpg"), frame)
                 print(f"Saved: frame{num}.jpg")
                 num += 1

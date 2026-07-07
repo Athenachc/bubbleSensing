@@ -86,15 +86,18 @@ def get_flow_magnitude(flow):
     
 def get_flow_vector(flow, center):
     Ox, Oy, Cx, Cy, Occupied = flow
-    summed_vector = np.array([0, 0])
+    # summed_vector = np.array([0, 0])
+    # Create an empty list to store individual vectors
+    all_vectors = []
     for i in range(len(Ox)):
         for j in range(len(Ox[i])):
             pt1 = (int(Ox[i][j]), int(Oy[i][j]))
             pt2 = (int(Cx[i][j]), int(Cy[i][j]))
             vector = np.array([round(pt2[0] - pt1[0], 3), round(pt2[1] - pt1[1], 3)])
-            summed_vector += vector
-    return summed_vector
-    
+            all_vectors.append(vector)
+    # Flatten the list of vectors into a single 1D array (e.g., [x1, y1, x2, y2, ... x9, y9])
+    return np.hstack(all_vectors)
+
 def get_flow_center(flow, center):
     Ox, Oy, Cx, Cy, Occupied = flow
     magnitude_center = 0

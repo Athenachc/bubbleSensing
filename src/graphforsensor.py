@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
 import re
 import numpy as np
 
@@ -21,12 +22,13 @@ radio_S = []
 radio_S2 = []
 error_N = []
 error_S = []
+result_new_magnitude_plus = []
 
 # 1. DATA LOADING AND PARSING
 # Read the file line by line, skipping the header or parsing the CSV format
 # with open('Sensor/sensor.txt', 'r') as file:
-# with open('Sensor_set/Sensor_20260624_1/sensor.txt', 'r') as file:
-with open('Sensor/Trial_20260627_174501/sensor.txt', 'r') as file:
+# with open('Sensor/5mm/Trial_20260707_202151/sensor.txt', 'r') as file:
+with open('Sensor/Trial_20260707_220011/sensor.txt', 'r') as file:
 
     for line in file:
         # Create 6 empty lists for the 6 columns
@@ -36,18 +38,18 @@ with open('Sensor/Trial_20260627_174501/sensor.txt', 'r') as file:
         # Append the values to the corresponding lists
         number.append(int(parts[0].strip()))
         normal_force_sensor_value.append(float(parts[1].strip()))
-        magnitude.append(float(parts[2].strip()))
+        magnitude.append(float(parts[2].strip())) # Total magnitude of the displacement vectors (all allows)
         vectors_x.append(float(parts[3].strip()))
         vectors_y.append(float(parts[4].strip()))
 
-        # Calculate means
+        # # Calculate means
         vector_mean_x.append(float(np.mean(vectors_x)))
         vector_mean_x_inv.append(-float(np.mean(vectors_x)))
 
-        # Calculate y-coordinate mean
+        # # Calculate y-coordinate mean
         vector_mean_y.append(float(np.mean(vectors_y)) if vectors_y else 0.0)
 
-        # Calculate new magnitude (subtract mean from all vectors)
+        # # Calculate new magnitude (subtract mean from all vectors)
         mean_x = float(np.mean(vectors_x))
         mean_y = float(np.mean(vectors_y)) if vectors_y else 0.0
 
@@ -86,13 +88,20 @@ else:
 
 # Scale values for comparison
 # new_magnitude_plus = [i * 0.00969 for i in magnitude]
-# new_magnitude_plus = [i * 0.009100555113186701 for i in magnitude]
-new_magnitude_plus = [i * 0.00929951120529139 for i in magnitude]
-vector_mean_x_plus = [i for i in vector_mean_x]                         # Compute error between calculated force and actual sensor feedback
+# new_magnitude_plus = [i * np.mean(radio_N) for i in magnitude]
+new_magnitude_plus = [i * 0.009480253108 for i in magnitude]
+n = 50 # Window size for moving average
+result = list(new_magnitude_plus[:n-1])
+for i in range(len(new_magnitude_plus)):
+    window = new_magnitude_plus[i-n+1:i+1]
+    result_new_magnitude_plus.append(sum(window)/ n)
+
+vector_mean_x_plus = [i for i in vector_mean_x]   
+vector_mean_y_plus = [i for i in vector_mean_y]                         # Compute error between calculated force and actual sensor feedback
 #compare_org_plus = [i * shear_coefficient for i in compare_org]
 
 # Calculate errors (Compute error between calculated force and actual sensor feedback)
-error_N = [new_magnitude_plus[i] - normal_force_sensor_value[i] for i in range(len(normal_force_sensor_value))]
+error_N = [result_new_magnitude_plus[i] - normal_force_sensor_value[i] for i in range(len(normal_force_sensor_value))]
 #error_S = [vector_mean_x_plus[i] - shear_force_sensor_value[i] for i in range(len(shear_force_sensor_value))]
 
 print('\n')
@@ -104,16 +113,18 @@ print('\n')
 # print('\n')
 
 # Create plots
-fig, axs = plt.subplots(2, 1, figsize=(10, 12))
+fig, axs = plt.subplots(3, 1, figsize=(10, 12))
 
 # Plot 1: Normal Force comparison
-axs[0].plot(number, new_magnitude_plus, marker='o', linestyle='-', color='r', linewidth=2, markersize=2, label='Calculated')
-axs[0].plot(number, normal_force_sensor_value, marker='o', linestyle='-', color='b', linewidth=2, markersize=2, label='Sensor')
+#axs[0].plot(number, new_magnitude_plus, linestyle='-', linewidth=2, markersize=2, label='Calculated')
+axs[0].plot(number, result_new_magnitude_plus, linestyle='-', linewidth=2, markersize=2, label='Average')
+axs[0].plot(number, normal_force_sensor_value, linestyle='-', linewidth=2, markersize=2, label='Sensor')
+axs[0].legend(loc='upper left', framealpha=0.7, edgecolor='none')
 axs[0].set_title('Normal Force vs Frame')
 axs[0].set_xlabel('Frame (ticks)')
 axs[0].set_ylabel('Normal Force (Newton)')
-axs[0].legend()
-axs[0].grid()
+axs[0].grid(True)
+axs[0].xaxis.set_major_locator(ticker.MultipleLocator(200))
 
 # Plot 2: Normal Force Error
 axs[1].plot(number, error_N, marker='o', linestyle='-', color='g', linewidth=2, markersize=2)
@@ -123,13 +134,13 @@ axs[1].set_ylabel('Error (N)')
 axs[1].grid()
 
 # # Plot 3: Shear Force comparison
-# axs[1].plot(number, vector_mean_x_plus, marker='o', linestyle='-', color='r', linewidth=2, markersize=2, label='Calculated')
-# #axs[1].plot(number, shear_force_sensor_value, marker='o', linestyle='-', color='b', linewidth=2, markersize=2, label='Sensor')
-# axs[1].set_title('Shear Force vs Frame')
-# axs[1].set_xlabel('Frame (ticks)')
-# axs[1].set_ylabel('Shear Force (Newton)')
-# axs[1].legend()
-# axs[1].grid()
+axs[2].plot(number, vector_mean_x_plus, marker='o', linestyle='-', color='r', linewidth=2, markersize=2, label='Calculated')
+axs[2].plot(number, vector_mean_y_plus, marker='o', linestyle='-', color='b', linewidth=2, markersize=2, label='Sensor')
+axs[2].set_title('Shear Force vs Frame')
+axs[2].set_xlabel('Frame (ticks)')
+axs[2].set_ylabel('Shear Force (Newton)')
+axs[2].legend()
+axs[2].grid()
 
 # # # Plot 4: Shear Force Error
 # # axs[3].plot(number, error_S, marker='o', linestyle='-', color='y', linewidth=2, markersize=2)
