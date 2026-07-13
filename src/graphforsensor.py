@@ -3,7 +3,7 @@ import matplotlib.ticker as ticker
 import re
 import numpy as np
 
-shear_coefficient = 0.41
+# shear_coefficient = 0.41
 
 # Initialize lists to store data parsed from the sensor file
 number = []
@@ -28,7 +28,7 @@ result_new_magnitude_plus = []
 # Read the file line by line, skipping the header or parsing the CSV format
 # with open('Sensor/sensor.txt', 'r') as file:
 # with open('Sensor/5mm/Trial_20260707_202151/sensor.txt', 'r') as file:
-with open('Sensor/Trial_20260707_220011/sensor.txt', 'r') as file:
+with open('Sensor/Trial_20260713_213053/sensor.txt', 'r') as file:
 
     for line in file:
         # Create 6 empty lists for the 6 columns
@@ -158,3 +158,24 @@ axs[2].grid()
 
 fig.tight_layout()
 plt.show()
+
+def plot_marker_vectors(frame_num, x_coords, y_coords, center_x, center_y):
+    """
+    Plots a quiver plot of marker movements for a specific frame.
+    x_coords, y_coords: lists of 9 floats representing current marker positions
+    """
+    # Assuming initial positions are near center (x0, y0 from settings)
+    # You might want to replace these with your actual initial positions
+    initial_x = [128, 278, 428, 128, 278, 428, 128, 278, 428] # Example based on your settings
+    initial_y = [20, 20, 20, 170, 170, 170, 320, 320, 320]
+    
+    u = np.array(x_coords) - np.array(initial_x) # Displacement X
+    v = np.array(y_coords) - np.array(initial_y) # Displacement Y
+    
+    plt.figure(figsize=(6, 6))
+    plt.quiver(initial_x, initial_y, u, v, angles='xy', scale_units='xy', scale=1)
+    plt.xlim(0, 600); plt.ylim(0, 600)
+    plt.gca().invert_yaxis()
+    plt.title(f"Marker Displacements - Frame {frame_num}")
+    plt.grid(True)
+    plt.show()
