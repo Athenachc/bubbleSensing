@@ -115,6 +115,7 @@ def main():
                 data_str = ", ".join([f"{val:.2f}" for val in all_marker_data])
 
                 # Write everything in one line
+                # The format will be: frame_number, sensor_value, flow_magnitude, x1, y1, x2, y2, ...
                 file_sensor.write(f"{num}, {sensor_val}, {marker_dectection.get_flow_magnitude(flow)}, {data_str}\n")
                 # file_sensor.write(f"{num}, {sensor_val}, {marker_dectection.get_flow_magnitude(flow)}, {marker_dectection.get_flow_vector(flow, (frame.shape[1]/2, frame.shape[0]/2))}\n")
                 # file_sensor.write(f"{num}, {sensor_val}, {marker_dectection.get_flow_magnitude(flow)}, {vector[0]}, {vector[1]}, {marker_dectection.get_flow_center(flow, (frame.shape[1]/2, frame.shape[0]/2))}\n")
