@@ -12,66 +12,12 @@ Marker Initial Position:
 """
 
 import math
-import pandas as pd
 import matplotlib.pyplot as plt
 
 def process_sensor_data(file_path):
-    # Defining column names: frame, sensor_val, flow_mag, then marker pairs
-    # Since the number of markers might vary, we read the file line by line
-    results = []
-    
-    with open(file_path, 'r') as file:
-        for line in file:
-            line = line.strip()
-            if not line or line.startswith('#'):
-                continue
-            
-            data = [float(x.strip()) for x in line.split(',')]
-            frame_num = int(data[0])
-            coords = data[3:] # Everything after index 2
-            
-            frame_summary = {
-                "frame": frame_num,
-                "markers": []
-            }
-            
-            # Iterate through coordinates in pairs
-            for i in range(0, len(coords), 2):
-                dx = coords[i]
-                dy = coords[i+1]
-                
-                # Magnitude calculation
-                magnitude = math.sqrt(dx**2 + dy**2)
-                
-                # Direction calculation (in degrees)
-                # math.atan2(y, x) handles the signs correctly
-                direction = math.degrees(math.atan2(dy, dx))
-                
-                frame_summary["markers"].append({
-                    "marker_id": i // 2,
-                    "dx": dx,
-                    "dy": dy,
-                    "magnitude_px": round(magnitude, 4),
-                    "direction_deg": round(direction, 2)
-                })
-            results.append(frame_summary)
-    return results
-
-# --- Main Execution ---
-file_path = 'Sensor/Trial_20260713_222105/sensor.txt'
-data = process_sensor_data(file_path)
-
-# Display results
-for entry in data:
-    print(f"--- Frame {entry['frame']} ---")
-    for m in entry['markers']:
-        print(f"Marker {m['marker_id']}: Mag={m['magnitude_px']}px, Dir={m['direction_deg']}°")
-
-def process_and_plot(file_path):
     frames = []
-    # Using a dictionary to store lists of magnitudes for each marker_id
-    # {marker_id: [mag_f1, mag_f2, ...]}
-    marker_magnitudes = {}
+    # Store lists for each marker: {id: {'dx': [], 'dy': [], 'mag': []}}
+    marker_data = {}
 
     with open(file_path, 'r') as file:
         for line in file:
@@ -88,21 +34,45 @@ def process_and_plot(file_path):
                 dx, dy = coords[i], coords[i+1]
                 mag = math.sqrt(dx**2 + dy**2)
                 
-                if mid not in marker_magnitudes:
-                    marker_magnitudes[mid] = []
-                marker_magnitudes[mid].append(mag)
+                if mid not in marker_data:
+                    marker_data[mid] = {'dx': [], 'dy': [], 'mag': []}
+                
+                marker_data[mid]['dx'].append(dx)
+                marker_data[mid]['dy'].append(dy)
+                marker_data[mid]['mag'].append(mag)
+                
+    return frames, marker_data
 
-    # Plotting
-    plt.figure(figsize=(10, 6))
-    for mid, magnitudes in marker_magnitudes.items():
-        plt.plot(frames, magnitudes, marker='o', label=f'Marker {mid}')
+def plot_all_data(file_path):
+    frames, marker_data = process_sensor_data(file_path)
     
-    plt.title('Marker Displacement Magnitude per Frame')
-    plt.xlabel('Frame Number')
-    plt.ylabel('Displacement Magnitude (pixels)')
-    plt.legend()
-    plt.grid(True)
+    # Create subplots: Magnitude, DX (Horizontal), DY (Vertical)
+    fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(12, 12), sharex=True)
+    
+    for mid, data in marker_data.items():
+        ax1.plot(frames, data['mag'], label=f'Marker {mid}')
+        ax2.plot(frames, data['dx'], label=f'Marker {mid}')
+        ax3.plot(frames, data['dy'], label=f'Marker {mid}')
+    
+    # Formatting
+    ax1.set_title('Displacement Magnitude (All Markers)')
+    ax1.set_ylabel('Magnitude (px)')
+    ax1.grid(True)
+    
+    ax2.set_title('Horizontal Displacement (dx: +Right, -Left)')
+    ax2.set_ylabel('dx (px)')
+    ax2.axhline(0, color='black', linewidth=1)
+    ax2.grid(True)
+    
+    ax3.set_title('Vertical Displacement (dy: +Down, -Up)')
+    ax3.set_ylabel('dy (px)')
+    ax3.axhline(0, color='black', linewidth=1)
+    ax3.grid(True)
+    ax3.set_xlabel('Frame Number')
+    
+    plt.tight_layout()
     plt.show()
 
 # Run the process
-process_and_plot('Sensor/Trial_20260713_222105/sensor.txt')
+file_path = 'Sensor/Trial_20260713_222105/sensor.txt'
+plot_all_data(file_path)

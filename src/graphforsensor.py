@@ -28,7 +28,7 @@ result_new_magnitude_plus = []
 # Read the file line by line, skipping the header or parsing the CSV format
 # with open('Sensor/sensor.txt', 'r') as file:
 # with open('Sensor/5mm/Trial_20260707_202151/sensor.txt', 'r') as file:
-with open('Sensor/Trial_20260713_213053/sensor.txt', 'r') as file:
+with open('Sensor/Trial_20260713_222105/sensor.txt', 'r') as file:
 
     for line in file:
         # Create 6 empty lists for the 6 columns
