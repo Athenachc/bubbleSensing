@@ -140,17 +140,18 @@ def main():
                 # Convert the array to a comma-separated string for logging
                 data_str = ", ".join([f"{val:.2f}" for val in all_marker_data])
 
-                # Write everything in one line
+                # Write everything to sensor.txt
                 file_sensor.write(f"{num}, {sensor_val}, {marker_dectection.get_flow_magnitude(flow)}, {data_str}\n")
-                
+
+            # --- REAL-TIME VISUAL OVERLAY (Applied BEFORE saving so words are captured) ---
+            # You can tune font scale (e.g., 0.5) and coordinates (e.g., 15, 25) here to prevent clipping
+            cv2.putText(frame, drag_status, (15, 25), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 3, cv2.LINE_AA)
+            cv2.putText(frame, drag_status, (15, 25), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 1, cv2.LINE_AA)
+
+            if not calibrate:
                 cv2.imwrite(os.path.join(trial_folder, f"frame{num}.jpg"), frame)
                 print(f"Saved: frame{num}.jpg - {drag_status}")
                 num += 1
-
-            # --- REAL-TIME VISUAL OVERLAY ---
-            # Draw a background banner for readability
-            cv2.putText(frame, drag_status, (15, 25), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 4, cv2.LINE_AA)
-            cv2.putText(frame, drag_status, (15, 25), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 2, cv2.LINE_AA)
 
             mask_img = mask.astype(frame[0].dtype)
             mask_img = cv2.merge((mask_img, mask_img, mask_img))
