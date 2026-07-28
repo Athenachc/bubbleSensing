@@ -1,5 +1,6 @@
 import cv2
 import marker_dectection
+import math
 import numpy as np
 import sys
 import setting
@@ -115,27 +116,44 @@ def main():
                 # Get all marker flow vectors [x1, y1, x2, y2, ...]
                 all_marker_data = marker_dectection.get_flow_vector(flow, (width/2, height/2))
 
-                # --- REAL-TIME DRAG DIRECTION ANALYSIS ---
+                # --- 8-DIRECTIONAL REAL-TIME DRAG ANALYSIS ---
                 if len(all_marker_data) > 0:
                     dx_vals = all_marker_data[0::2] # Even indices are dx
                     dy_vals = all_marker_data[1::2] # Odd indices are dy
                     
                     mean_dx = np.mean(dx_vals)
                     mean_dy = np.mean(dy_vals)
+                    magnitude = math.sqrt(mean_dx**2 + mean_dy**2)
 
-                    # Classify movement based on mean thresholding
-                    if abs(mean_dx) < DRAG_THRESHOLD and abs(mean_dy) < DRAG_THRESHOLD:
+                    if magnitude < DRAG_THRESHOLD:
                         drag_status = "State: Pure Push / No Drag"
-                    elif abs(mean_dx) > abs(mean_dy):
-                        if mean_dx > 0:
-                            drag_status = f"Drag: RIGHT (+{mean_dx:.2f}px)"
-                        else:
-                            drag_status = f"Drag: LEFT ({mean_dx:.2f}px)"
                     else:
-                        if mean_dy > 0:
-                            drag_status = f"Drag: DOWN (+{mean_dy:.2f}px)"
+                        # Calculate angle in degrees (-180 to 180)
+                        # Note: OpenCV y-axis points down (+dy is down, -dy is up)
+                        angle = math.degrees(math.atan2(mean_dy, mean_dx))
+                        
+                        # Shift angle range to 0 - 360 for easier sector mapping
+                        if angle < 0:
+                            angle += 360
+
+                        # Map angle (segmented into 8 directions, 45 degrees each)
+                        # 0° is Right, rotating clockwise:
+                        if 22.5 <= angle < 67.5:
+                            drag_status = f"Drag: DOWN-RIGHT"
+                        elif 67.5 <= angle < 112.5:
+                            drag_status = f"Drag: DOWN"
+                        elif 112.5 <= angle < 157.5:
+                            drag_status = f"Drag: DOWN-LEFT"
+                        elif 157.5 <= angle < 202.5:
+                            drag_status = f"Drag: LEFT"
+                        elif 202.5 <= angle < 247.5:
+                            drag_status = f"Drag: UP-LEFT"
+                        elif 247.5 <= angle < 292.5:
+                            drag_status = f"Drag: UP"
+                        elif 292.5 <= angle < 337.5:
+                            drag_status = f"Drag: UP-RIGHT"
                         else:
-                            drag_status = f"Drag: UP ({mean_dy:.2f}px)"
+                            drag_status = f"Drag: RIGHT"
                 
                 # Convert the array to a comma-separated string for logging
                 data_str = ", ".join([f"{val:.2f}" for val in all_marker_data])
@@ -143,8 +161,7 @@ def main():
                 # Write everything to sensor.txt
                 file_sensor.write(f"{num}, {sensor_val}, {marker_dectection.get_flow_magnitude(flow)}, {data_str}\n")
 
-            # --- REAL-TIME VISUAL OVERLAY (Applied BEFORE saving so words are captured) ---
-            # You can tune font scale (e.g., 0.5) and coordinates (e.g., 15, 25) here to prevent clipping
+            # --- REAL-TIME VISUAL OVERLAY ---
             cv2.putText(frame, drag_status, (15, 25), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 3, cv2.LINE_AA)
             cv2.putText(frame, drag_status, (15, 25), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 1, cv2.LINE_AA)
 
