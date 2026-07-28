@@ -149,8 +149,8 @@ def main():
 
             # --- REAL-TIME VISUAL OVERLAY ---
             # Draw a background banner for readability
-            cv2.putText(frame, drag_status, (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), 4, cv2.LINE_AA)
-            cv2.putText(frame, drag_status, (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 255), 2, cv2.LINE_AA)
+            cv2.putText(frame, drag_status, (15, 25), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 4, cv2.LINE_AA)
+            cv2.putText(frame, drag_status, (15, 25), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 2, cv2.LINE_AA)
 
             mask_img = mask.astype(frame[0].dtype)
             mask_img = cv2.merge((mask_img, mask_img, mask_img))
