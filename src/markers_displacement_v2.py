@@ -1,0 +1,176 @@
+import cv2
+import marker_dectection
+import numpy as np
+import sys
+import setting
+import time
+import threading
+import RS485
+import os
+import datetime
+from pathlib import Path
+from lib import find_marker
+
+# --- CONFIGURATION ---
+serial_port = '/dev/ttyUSB0'  #'/dev/ttyUSB0' or 'COM11'
+gelsight_version = 'Bnz'
+reset = bytes([0x01, 0x10, 0x46, 0x08, 0x00, 0x02, 0x04, 0x00, 0x00, 0x00, 0x00, 0xE8, 0x6A])
+getdata1 = bytes([0x01, 0x04, 0x00, 0x0E, 0x00, 0x02, 0x10, 0x08])
+
+def setup_trial_folder():
+    """Creates a unique timestamped folder for each run."""
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    folder = os.path.join('Sensor', f'Trial_{timestamp}')
+    os.makedirs(folder, exist_ok=True)
+    return folder
+
+def main():
+    # Setup & Initialization
+    calibrate = 'calibrate' in sys.argv
+    trial_folder = setup_trial_folder()
+    print(f"Data saving to: {trial_folder}")
+
+    setting.init()
+    sensor = RS485.sensor_init(serial_port, reset)
+    cap = cv2.VideoCapture(0)
+    
+    # VIDEO WRITER SETUP
+    fourcc = cv2.VideoWriter_fourcc(*'XVID')
+    out_path = os.path.join(trial_folder, 'output.mp4')
+    if gelsight_version == 'HSR':
+        out = cv2.VideoWriter(out_path, fourcc, 30.0, (215, 215))
+    else:
+        out = cv2.VideoWriter(out_path, fourcc, 30.0, (1280 // setting.RESCALE, 720 // setting.RESCALE))
+
+    # CALIBRATION & WARM-UP
+    for i in range(30): ret, frame = cap.read()
+    img = cv2.imread('calibresult.png')
+    frame = marker_dectection.init(img)
+    mask = marker_dectection.find_marker(frame)
+    mc = marker_dectection.marker_center(mask, frame)
+
+    # SAVE INITIALIZATION FILES
+    cv2.imwrite(os.path.join(trial_folder, 'mask.png'), mask)
+    cv2.imwrite(os.path.join(trial_folder, 'frame.png'), frame)
+
+    m = find_marker.Matching(
+    N_=setting.N_, 
+    M_=setting.M_, 
+    fps_=setting.fps_, 
+    x0_=setting.x0_, 
+    y0_=setting.y0_, 
+    dx_=setting.dx_, 
+    dy_=setting.dy_)
+
+    # Save the center points
+    file_center = open(os.path.join(trial_folder, "center.txt"), "w")
+    for i in mc:
+        file_center.write(str(i) + ', ')
+    file_center.close()
+
+    # Open resources
+    file_sensor = open(os.path.join(trial_folder, "sensor.txt"), "w")
+    num = 1
+
+    # Threshold for determining active drag vs. stationary/pure push noise floor (in pixels)
+    DRAG_THRESHOLD = 1.5
+
+    # Use 'try...finally' to ensure hardware releases even if the script crashes
+    try:
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                break
+
+            frame_raw = frame.copy()
+
+            if gelsight_version == 'HSR':
+                frame = marker_dectection.init_HSR(frame)
+            else:
+                frame = marker_dectection.init(frame)
+            
+            # find marker masks
+            mask = marker_dectection.find_marker(frame)
+            height, width, _ = frame.shape
+            camera_center = (width/2, height/2)
+            # find marker centers
+            mc = marker_dectection.marker_center(mask, frame)
+
+            drag_status = "Initializing..."
+
+            if not calibrate:
+                tm = time.time()
+                m.init(mc)
+                m.run()
+                print(time.time() - tm)
+
+                flow = m.get_flow()
+
+                # draw flow vectors on frame
+                marker_dectection.draw_flow(frame, flow)
+
+                RS485.sensor_send(sensor, getdata1)
+                sensor_val = RS485.sensor_read(sensor)
+                
+                # Get all marker flow vectors [x1, y1, x2, y2, ...]
+                all_marker_data = marker_dectection.get_flow_vector(flow, (width/2, height/2))
+
+                # --- REAL-TIME DRAG DIRECTION ANALYSIS ---
+                if len(all_marker_data) > 0:
+                    dx_vals = all_marker_data[0::2] # Even indices are dx
+                    dy_vals = all_marker_data[1::2] # Odd indices are dy
+                    
+                    mean_dx = np.mean(dx_vals)
+                    mean_dy = np.mean(dy_vals)
+
+                    # Classify movement based on mean thresholding
+                    if abs(mean_dx) < DRAG_THRESHOLD and abs(mean_dy) < DRAG_THRESHOLD:
+                        drag_status = "State: Pure Push / No Drag"
+                    elif abs(mean_dx) > abs(mean_dy):
+                        if mean_dx > 0:
+                            drag_status = f"Drag: RIGHT (+{mean_dx:.2f}px)"
+                        else:
+                            drag_status = f"Drag: LEFT ({mean_dx:.2f}px)"
+                    else:
+                        if mean_dy > 0:
+                            drag_status = f"Drag: DOWN (+{mean_dy:.2f}px)"
+                        else:
+                            drag_status = f"Drag: UP ({mean_dy:.2f}px)"
+                
+                # Convert the array to a comma-separated string for logging
+                data_str = ", ".join([f"{val:.2f}" for val in all_marker_data])
+
+                # Write everything in one line
+                file_sensor.write(f"{num}, {sensor_val}, {marker_dectection.get_flow_magnitude(flow)}, {data_str}\n")
+                
+                cv2.imwrite(os.path.join(trial_folder, f"frame{num}.jpg"), frame)
+                print(f"Saved: frame{num}.jpg - {drag_status}")
+                num += 1
+
+            # --- REAL-TIME VISUAL OVERLAY ---
+            # Draw a background banner for readability
+            cv2.putText(frame, drag_status, (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 0), 4, cv2.LINE_AA)
+            cv2.putText(frame, drag_status, (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 255), 2, cv2.LINE_AA)
+
+            mask_img = mask.astype(frame[0].dtype)
+            mask_img = cv2.merge((mask_img, mask_img, mask_img))
+
+            cv2.imshow('frame', frame)
+
+            if calibrate:
+                cv2.imshow('mask', mask_img)
+            out.write(frame)
+
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break   
+
+    finally:
+        # Cleanup: Always runs
+        file_sensor.close()
+        RS485.sensor_close(sensor)
+        cap.release()
+        cv2.destroyAllWindows()
+        print(f"Trial complete. {num-1} frames saved.")
+
+if __name__ == "__main__":
+    main()
