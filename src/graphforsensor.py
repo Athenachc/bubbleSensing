@@ -26,9 +26,9 @@ result_new_magnitude_plus = []
 
 # 1. DATA LOADING AND PARSING
 # Read the file line by line, skipping the header or parsing the CSV format
-# with open('Sensor/sensor.txt', 'r') as file:
-# with open('Sensor/5mm/Trial_20260707_202151/sensor.txt', 'r') as file:
-with open('Sensor/Trial_20260713_222105/sensor.txt', 'r') as file:
+# with open('Sensor/Trial_20260731_164051/sensor.txt', 'r') as file:
+with open('Sensor/5mm_2.5ml/Trial_20260728_194229/sensor.txt', 'r') as file:
+# with open('Sensor/5mm/Trial_20260627_183300/sensor.txt', 'r') as file:
 
     for line in file:
         # Create 6 empty lists for the 6 columns
@@ -72,13 +72,13 @@ if nf == 0 or nm == 0:
 else:
     radio_N.append(nf / nm)
 
-#sf = float(np.sum(shear_force_sensor_value))
-#sm = float(np.sum(vector_mean_x))
-#sm2 = float(np.sum(compare_org))
+# sf = float(np.sum(shear_force_sensor_value))
+# sm = float(np.sum(vector_mean_x))
+# sm2 = float(np.sum(compare_org))
 
-#if sf == 0 or sm == 0:
+# if sf == 0 or sm == 0:
 #    radio_S.append(0)
-#else:
+# else:
 #    radio_S.append(sf / sm)
 
 # if sf == 0 or sm2 == 0:
@@ -88,8 +88,10 @@ else:
 
 # Scale values for comparison
 # new_magnitude_plus = [i * 0.00969 for i in magnitude]
-# new_magnitude_plus = [i * np.mean(radio_N) for i in magnitude]
-new_magnitude_plus = [i * 0.009480253108 for i in magnitude]
+new_magnitude_plus = [i * np.mean(radio_N) for i in magnitude]
+# new_magnitude_plus = [i * 0.01092362628 for i in magnitude] # for 2.5ml 5mm camera bubble
+# new_magnitude_plus = [i * 0.01086515031 for i in magnitude] # for 2.5ml 6mm camera bubble
+# new_magnitude_plus = [i * 0.009480253108 for i in magnitude] # for 2ml 5mm camera bubble
 n = 50 # Window size for moving average
 result = list(new_magnitude_plus[:n-1])
 for i in range(len(new_magnitude_plus)):
@@ -104,9 +106,9 @@ vector_mean_y_plus = [i for i in vector_mean_y]                         # Comput
 error_N = [result_new_magnitude_plus[i] - normal_force_sensor_value[i] for i in range(len(normal_force_sensor_value))]
 #error_S = [vector_mean_x_plus[i] - shear_force_sensor_value[i] for i in range(len(shear_force_sensor_value))]
 
-print('\n')
+# print('\n')
 print("radio_N: ", np.mean(radio_N))
-print('\n')
+# print('\n')
 # print("radio_S: ", radio_S)
 # print('\n')
 # print("radio_S2: ", radio_S2)
