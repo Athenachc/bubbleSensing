@@ -32,33 +32,80 @@ def find_marker(frame):
     return mask
 
 
+# def marker_center(mask, frame):
+#     RESCALE = setting.RESCALE
+    
+#     areaThresh1 = 300/RESCALE**2
+#     areaThresh2 = 10000/RESCALE**2
+#     MarkerCenter = []
+
+#     contours=cv2.findContours(mask.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+#     if len(contours[0])<9:  # if too little markers, then give up
+#         print("Too less markers detected: ", len(contours))
+#         return MarkerCenter
+
+#     for contour in contours[0]:
+#         x,y,w,h = cv2.boundingRect(contour)
+#         AreaCount=cv2.contourArea(contour)
+#         # print(AreaCount)
+#         if AreaCount>areaThresh1 and AreaCount<areaThresh2 and abs(np.max([w, h]) * 1.0 / np.min([w, h]) - 1) < 1 and x>30 and x<275: 
+#             t=cv2.moments(contour)
+#             # print("moments", t)
+#             # MarkerCenter=np.append(MarkerCenter,[[t['m10']/t['m00'], t['m01']/t['m00'], AreaCount]],axis=0)
+#             mc = [t['m10']/t['m00'], t['m01']/t['m00']]
+#             # if t['mu11'] < -100: continue
+#             MarkerCenter.append(mc)
+#             #print(mc)
+#             cv2.circle(frame, (int(mc[0]), int(mc[1])), 10, ( 0, 0, 255 ), 2, 6);
+
+#     # 0:x 1:y
+#     return MarkerCenter
+
 def marker_center(mask, frame):
     RESCALE = setting.RESCALE
     
-    areaThresh1 = 300/RESCALE**2
-    areaThresh2 = 10000/RESCALE**2
+    areaThresh1 = 300 / RESCALE**2
+    areaThresh2 = 5000 / RESCALE**2  # Lowered upper bound to reject large lighting blobs/objects
     MarkerCenter = []
 
-    contours=cv2.findContours(mask.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    if len(contours[0])<9:  # if too little markers, then give up
+    # Optional: Clean up small specs and holes caused by lighting/colors
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
+    mask_cleaned = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
+
+    contours, _ = cv2.findContours(mask_cleaned.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    
+    if len(contours) < 9:
         print("Too less markers detected: ", len(contours))
         return MarkerCenter
 
-    for contour in contours[0]:
-        x,y,w,h = cv2.boundingRect(contour)
-        AreaCount=cv2.contourArea(contour)
-        # print(AreaCount)
-        if AreaCount>areaThresh1 and AreaCount<areaThresh2 and abs(np.max([w, h]) * 1.0 / np.min([w, h]) - 1) < 1 and x>30 and x<275: 
-            t=cv2.moments(contour)
-            # print("moments", t)
-            # MarkerCenter=np.append(MarkerCenter,[[t['m10']/t['m00'], t['m01']/t['m00'], AreaCount]],axis=0)
-            mc = [t['m10']/t['m00'], t['m01']/t['m00']]
-            # if t['mu11'] < -100: continue
-            MarkerCenter.append(mc)
-            #print(mc)
-            cv2.circle(frame, (int(mc[0]), int(mc[1])), 10, ( 0, 0, 255 ), 2, 6);
+    valid_contours = []
+    for contour in contours:
+        x, y, w, h = cv2.boundingRect(contour)
+        AreaCount = cv2.contourArea(contour)
+        
+        # Calculate circularity or aspect ratio to ensure they are dot-like markers
+        aspect_ratio = np.max([w, h]) * 1.0 / np.min([w, h])
+        
+        # Filter by area, strict aspect ratio, and ignore blobs too close to the image border (removes edge light noise)
+        img_h, img_w = mask.shape
+        if (areaThresh1 < AreaCount < areaThresh2) and (aspect_ratio < 1.4) and (20 < x < img_w - 20) and (20 < y < img_h - 20):
+            valid_contours.append((AreaCount, contour))
 
-    # 0:x 1:y
+    # If we found more than 9, sort by area (or closeness to expected size) and take the best 9
+    # (Assuming your grid is strictly 3x3 = 9 markers)
+    if len(valid_contours) >= 9:
+        # Sort descending by area, or you can sort by how close they are to an expected median marker size
+        valid_contours = sorted(valid_contours, key=lambda item: item[0], reverse=True)
+        valid_contours = valid_contours[:9] # Keep only the top 9 candidates
+
+    for AreaCount, contour in valid_contours:
+        t = cv2.moments(contour)
+        if t['m00'] == 0:
+            continue
+        mc = [t['m10'] / t['m00'], t['m01'] / t['m00']]
+        MarkerCenter.append(mc)
+        cv2.circle(frame, (int(mc[0]), int(mc[1])), 10, (0, 0, 255), 2, 6)
+
     return MarkerCenter
 
 def draw_flow(frame, flow):
