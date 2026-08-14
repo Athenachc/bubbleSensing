@@ -48,7 +48,7 @@ def main():
     print(f"Data saving to: {trial_folder}")
 
     setting.init()
-    cap = cv2.VideoCapture(0)
+    cap = cv2.VideoCapture(4)
     
     # VIDEO WRITER SETUP
     fourcc = cv2.VideoWriter_fourcc(*'XVID')
@@ -58,8 +58,12 @@ def main():
     else:
         out = cv2.VideoWriter(out_path, fourcc, 30.0, (1280 // setting.RESCALE, 720 // setting.RESCALE))
 
-    # CALIBRATION & WARM-UP
-    for i in range(30): ret, frame = cap.read()
+    # CALIBRATION & WARM-UP (with horizontal flip to match platform orientation)
+    for i in range(30): 
+        ret, frame = cap.read()
+    if ret:
+        frame = cv2.flip(frame, 1)
+
     img = cv2.imread('calibresult.png')
     frame = marker_dectection.init(img)
     mask = marker_dectection.find_marker(frame)
@@ -100,7 +104,8 @@ def main():
         "Drag: DOWN": 's',
         "Drag: DOWN-LEFT": 'z',
         "Drag: LEFT": 'a',
-        "Drag: UP-LEFT": 'q'
+        "Drag: UP-LEFT": 'q',
+        "State: Pure Push / No Drag": 'n'
     }
 
     # Use 'try...finally' to ensure hardware releases even if the script crashes
@@ -109,10 +114,17 @@ def main():
         COMMAND_INTERVAL = 0.5  # Send a command at most every 0.5 seconds (adjust if needed)
         last_sent_direction = None
 
+        # --- CREATE RESIZABLE WINDOW ---
+        cv2.namedWindow('frame', cv2.WINDOW_NORMAL)
+        cv2.resizeWindow('frame', 1280, 720)  # Adjust Width and Height here as desired
+
         while True:
             ret, frame = cap.read()
             if not ret:
                 break
+
+            # --- FLIP FRAME HORIZONTALLY TO FIX LEFT/RIGHT MIRRORING ---
+            frame = cv2.flip(frame, 1)
 
             frame_raw = frame.copy()
 
@@ -157,7 +169,6 @@ def main():
                         drag_status = "State: Pure Push / No Drag"
                     else:
                         # Calculate angle in degrees (-180 to 180)
-                        # Note: OpenCV y-axis points down (+dy is down, -dy is up)
                         angle = math.degrees(math.atan2(mean_dy, mean_dx))
                         
                         # Shift angle range to 0 - 360 for easier sector mapping
