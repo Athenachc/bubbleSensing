@@ -24,7 +24,6 @@ for file_path in sensor_files:
             if len(parts) >= 5:
                 try:
                     frame_num = int(parts[0].strip())
-                    # Calculate timestamp in seconds starting from 0.0 for the first frame
                     t = (frame_num - 1) / fps
                     timestamps.append(t)
                     nf_values.append(float(parts[1].strip()))
@@ -88,24 +87,20 @@ else:
     best_radio_N = initial_radio_N
 
 print(f"\nSuccessfully kept {len(valid_trial_data)} trials.")
-print(f"Refined best global radio_N: {best_radio_N:.8f}")
+print(f"Refined best global ratio_N: {best_radio_N:.8f}")
 
-# 4. Plot each valid trial with timestamps on the X-axis
-n_valid = len(valid_trial_data)
-if n_valid == 0:
+if not valid_trial_data:
     print("No valid trials to plot!")
     exit()
 
-ncols = 2 if n_valid > 1 else 1
-nrows = (n_valid + ncols - 1) // ncols
+# 4. Interpolate valid trials onto a common time grid for a clean conference aggregate plot
+min_max_time = min([data["timestamp"][-1] for data in valid_trial_data])
+common_time = np.linspace(0, min_max_time, 300)
 
-fig, axs = plt.subplots(nrows, ncols, figsize=(14, 4 * nrows), sharey=True)
-if n_valid == 1:
-    axs = np.array([axs])
-else:
-    axs = axs.flatten()
+interp_sensors = []
+interp_calcs = []
 
-for i, data in enumerate(valid_trial_data):
+for data in valid_trial_data:
     mag = np.array(data["magnitude"])
     nf_sensor = np.array(data["normal_force"])
     timestamps = data["timestamp"]
@@ -115,31 +110,43 @@ for i, data in enumerate(valid_trial_data):
     if len(calculated_nf) >= n_window:
         calc_smooth = np.convolve(calculated_nf, np.ones(n_window)/n_window, mode='valid')
         sensor_smooth = np.array(nf_sensor[n_window-1:])
-        plot_time = timestamps[n_window-1:]
+        plot_time = np.array(timestamps[n_window-1:])
     else:
         calc_smooth = calculated_nf
         sensor_smooth = np.array(nf_sensor)
-        plot_time = timestamps
+        plot_time = np.array(timestamps)
         
-    trial_name = data["path"].parent.name
+    # Interpolate onto common time axis
+    s_interp = np.interp(common_time, plot_time, sensor_smooth)
+    c_interp = np.interp(common_time, plot_time, calc_smooth)
     
-    # Plot Ground Truth (Force Sensor) and Calculation using Time (seconds)
-    axs[i].plot(plot_time, sensor_smooth, color='black', linewidth=2, label='Force Sensor (Ground Truth)')
-    axs[i].plot(plot_time, calc_smooth, color='dodgerblue', linewidth=1.8, linestyle='--', label='Calculated')
-    
-    # Shade the "gap" between ground truth and calculation
-    axs[i].fill_between(plot_time, sensor_smooth, calc_smooth, color='orange', alpha=0.35, label='Discrepancy Gap')
-    
-    axs[i].set_title(f'Trial: {trial_name}', fontsize=11, fontweight='bold')
-    axs[i].set_xlabel('Time (seconds)')
-    axs[i].set_ylabel('Normal Force (N)')
-    axs[i].grid(True, linestyle=':', alpha=0.7)
-    axs[i].legend(loc='upper left', fontsize='small', framealpha=0.8)
+    interp_sensors.append(s_interp)
+    interp_calcs.append(c_interp)
 
-# Hide any empty subplots if grid has spare slots
-for j in range(i + 1, len(axs)):
-    fig.delaxes(axs[j])
+mean_sensor = np.mean(interp_sensors, axis=0)
+mean_calc = np.mean(interp_calcs, axis=0)
+std_sensor = np.std(interp_sensors, axis=0)
+std_calc = np.std(interp_calcs, axis=0)
 
-fig.suptitle(f'Individual Trial Progression & Discrepancy Gaps over Time (Unified radio_N = {best_radio_N:.5f})', fontsize=14, y=0.98)
+# 5. Plot the compact aggregate gap graph for conference papers
+fig, ax = plt.subplots(figsize=(8, 5))
+
+# Plot mean Ground Truth and Calculation curves
+ax.plot(common_time, mean_sensor, color='black', linewidth=2.2, label='Mean Force Sensor (Ground Truth)')
+ax.plot(common_time, mean_calc, color='dodgerblue', linewidth=2, linestyle='--', label=f'Mean Calculated (radio_N = {best_radio_N:.5f})')
+
+# Add subtle standard deviation envelopes to show trial repeatability
+ax.fill_between(common_time, mean_sensor - std_sensor, mean_sensor + std_sensor, color='black', alpha=0.1)
+ax.fill_between(common_time, mean_calc - std_calc, mean_calc + std_calc, color='dodgerblue', alpha=0.1)
+
+# Highlight the primary "gap" between ground truth and calculation
+ax.fill_between(common_time, mean_sensor, mean_calc, color='orange', alpha=0.4, label='Aggregate Discrepancy Gap')
+
+ax.set_title('Aggregate Normal Force Progression & Discrepancy Gap Across Valid Trials', fontsize=11, fontweight='bold')
+ax.set_xlabel('Time (seconds)', fontsize=10)
+ax.set_ylabel('Normal Force (N)', fontsize=10)
+ax.grid(True, linestyle=':', alpha=0.7)
+ax.legend(loc='upper left', fontsize='small', framealpha=0.9)
+
 fig.tight_layout()
 plt.show()

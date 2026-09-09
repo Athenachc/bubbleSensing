@@ -48,7 +48,7 @@ for file_path in sensor_files:
 initial_radio_N = np.mean(all_ratios)
 
 # 2. Filter out trials where the maximum absolute error exceeds 0.4 N
-error_threshold = 0.3
+error_threshold = 0.345
 n_window = 50
 valid_trial_data = []
 filtered_ratios = []
