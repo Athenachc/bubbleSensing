@@ -135,9 +135,9 @@ fig, ax = plt.subplots(figsize=(8, 5))
 ax.plot(common_time, mean_sensor, color='black', linewidth=2.2, label='Mean Force Sensor (Ground Truth)')
 ax.plot(common_time, mean_calc, color='dodgerblue', linewidth=2, linestyle='--', label=f'Mean Calculated (radio_N = {best_radio_N:.5f})')
 
-# Add subtle standard deviation envelopes to show trial repeatability
-ax.fill_between(common_time, mean_sensor - std_sensor, mean_sensor + std_sensor, color='black', alpha=0.1)
-ax.fill_between(common_time, mean_calc - std_calc, mean_calc + std_calc, color='dodgerblue', alpha=0.1)
+# Add labeled standard deviation envelopes to show trial repeatability in the legend
+ax.fill_between(common_time, mean_sensor - std_sensor, mean_sensor + std_sensor, color='black', alpha=0.1, label='Sensor Trial Spread (±1σ)')
+ax.fill_between(common_time, mean_calc - std_calc, mean_calc + std_calc, color='dodgerblue', alpha=0.1, label='Calculated Trial Spread (±1σ)')
 
 # Highlight the primary "gap" between ground truth and calculation
 ax.fill_between(common_time, mean_sensor, mean_calc, color='orange', alpha=0.4, label='Aggregate Discrepancy Gap')
