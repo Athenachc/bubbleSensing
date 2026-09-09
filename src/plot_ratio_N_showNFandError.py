@@ -129,35 +129,37 @@ for data in valid_trial_data:
 
 mean_sensor = np.mean(interp_sensors, axis=0)
 mean_calc = np.mean(interp_calcs, axis=0)
+std_sensor = np.std(interp_sensors, axis=0)
 std_calc = np.std(interp_calcs, axis=0)
 
 mean_error = np.mean(interp_errors, axis=0)
 std_error = np.std(interp_errors, axis=0)
 
-# 5. Plot Clean Aggregate Curves against Time (seconds)
+# 5. Plot Two-Panel Figure with Updated Top Panel and Maintained Error Bottom Panel
 fig, axs = plt.subplots(2, 1, figsize=(10, 8), sharex=True)
 
-# Top Panel: Normal Force Comparison
-axs[0].plot(common_time, mean_sensor, color='black', linewidth=2, label='Force Sensor (Ground Truth)')
-axs[0].plot(common_time, mean_calc, color='dodgerblue', linewidth=2, linestyle='--', label='Calculated (Mean)')
-axs[0].fill_between(common_time, mean_calc - std_calc, mean_calc + std_calc, color='dodgerblue', alpha=0.2, label='±1σ Trial Spread')
-axs[0].set_title(f'Aggregate Normal Force Comparison (Filtered {len(valid_trial_data)} Trials, radio_N = {best_radio_N:.5f})', fontsize=11, fontweight='bold')
-axs[0].set_ylabel('Normal Force (N)')
+# Top Panel: Updated Normal Force Comparison & Discrepancy Gap
+axs[0].plot(common_time, mean_sensor, color='black', linewidth=2.2, label='Mean Measured Force')
+axs[0].plot(common_time, mean_calc, color='dodgerblue', linewidth=2, linestyle='--', label='Mean Detected Force')
+axs[0].fill_between(common_time, mean_sensor - std_sensor, mean_sensor + std_sensor, color='gray', alpha=0.15, label='Measured Trial Spread (±1σ)')
+axs[0].fill_between(common_time, mean_calc - std_calc, mean_calc + std_calc, color='deepskyblue', alpha=0.15, label='Detected Trial Spread (±1σ)')
+axs[0].fill_between(common_time, mean_sensor, mean_calc, color='orange', alpha=0.35, label='Aggregate Discrepancy Gap')
+
+axs[0].set_title(f'Aggregate Normal Force Comparison & Discrepancy Gap (Filtered {len(valid_trial_data)} Trials, radio_N = {best_radio_N:.5f})', fontsize=11, fontweight='bold')
+axs[0].set_ylabel('Normal Force (N)', fontsize=10)
 axs[0].grid(True, linestyle=':', alpha=0.7)
-axs[0].legend(loc='upper left', fontsize='small', framealpha=0.9)
+axs[0].legend(loc='upper left', fontsize=10, framealpha=0.9)
 
 # Bottom Panel: Aggregate Error Trend with Shaded Standard Deviation Band
 axs[1].plot(common_time, mean_error, color='crimson', linewidth=2, label='Mean Error (Detected - Measured)')
 axs[1].fill_between(common_time, mean_error - std_error, mean_error + std_error, color='crimson', alpha=0.2, label='±1σ Error Spread')
 axs[1].axhline(0, color='black', linestyle='-', linewidth=1)
-# axs[1].axhline(error_threshold, color='gray', linestyle='--', linewidth=1, alpha=0.7, label=f'+{error_threshold}N Threshold')
-# axs[1].axhline(-error_threshold, color='gray', linestyle='--', linewidth=1, alpha=0.7, label=f'-{error_threshold}N Threshold')
 
 axs[1].set_title('Aggregate Normal Force Error vs Time', fontsize=11, fontweight='bold')
-axs[1].set_xlabel('Time (seconds)')
-axs[1].set_ylabel('Error (N)')
+axs[1].set_xlabel('Time (seconds)', fontsize=10)
+axs[1].set_ylabel('Error (N)', fontsize=10)
 axs[1].grid(True, linestyle=':', alpha=0.7)
-axs[1].legend(loc='upper left', fontsize='small', framealpha=0.9)
+axs[1].legend(loc='upper left', fontsize=10, framealpha=0.9)
 
 fig.tight_layout()
 plt.show()
