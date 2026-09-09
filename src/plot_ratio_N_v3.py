@@ -128,19 +128,19 @@ mean_calc = np.mean(interp_calcs, axis=0)
 std_sensor = np.std(interp_sensors, axis=0)
 std_calc = np.std(interp_calcs, axis=0)
 
-# 5. Plot the compact aggregate gap graph for conference papers
+# 5. Plot Colorful Yet B&W-Printable Aggregate Graph
 fig, ax = plt.subplots(figsize=(8, 5))
 
-# Plot mean Ground Truth and Calculation curves
+# Plot mean Ground Truth (Solid Black) and Calculated (Dashed Dodgerblue)
 ax.plot(common_time, mean_sensor, color='black', linewidth=2.2, label='Mean Force Sensor (Ground Truth)')
 ax.plot(common_time, mean_calc, color='dodgerblue', linewidth=2, linestyle='--', label=f'Mean Calculated (radio_N = {best_radio_N:.5f})')
 
-# Add labeled standard deviation envelopes to show trial repeatability in the legend
-ax.fill_between(common_time, mean_sensor - std_sensor, mean_sensor + std_sensor, color='black', alpha=0.1, label='Sensor Trial Spread (±1σ)')
-ax.fill_between(common_time, mean_calc - std_calc, mean_calc + std_calc, color='dodgerblue', alpha=0.1, label='Calculated Trial Spread (±1σ)')
+# Add subtle standard deviation envelopes (distinct contrast shades)
+ax.fill_between(common_time, mean_sensor - std_sensor, mean_sensor + std_sensor, color='gray', alpha=0.15, label='Sensor Trial Spread (±1σ)')
+ax.fill_between(common_time, mean_calc - std_calc, mean_calc + std_calc, color='deepskyblue', alpha=0.15, label='Calculated Trial Spread (±1σ)')
 
-# Highlight the primary "gap" between ground truth and calculation
-ax.fill_between(common_time, mean_sensor, mean_calc, color='orange', alpha=0.4, label='Aggregate Discrepancy Gap')
+# Highlight the discrepancy gap in vibrant orange (which maps to a clear distinct shade in B&W)
+ax.fill_between(common_time, mean_sensor, mean_calc, color='orange', alpha=0.35, label='Aggregate Discrepancy Gap')
 
 ax.set_title('Aggregate Normal Force Progression & Discrepancy Gap Across Valid Trials', fontsize=11, fontweight='bold')
 ax.set_xlabel('Time (seconds)', fontsize=10)
