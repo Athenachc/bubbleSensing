@@ -12,9 +12,9 @@ trial_data = []
 all_ratios = []
 fps = 30.0  # Recording frame rate
 
-# 1. Parse all trials and convert frame numbers to timestamps
+# 1. Parse all trials
 for file_path in sensor_files:
-    timestamps = []
+    numbers = []
     nf_values = []
     magnitudes = []
     
@@ -23,9 +23,7 @@ for file_path in sensor_files:
             parts = line.strip().split(", ", 5)
             if len(parts) >= 5:
                 try:
-                    frame_num = int(parts[0].strip())
-                    t = (frame_num - 1) / fps
-                    timestamps.append(t)
+                    numbers.append(int(parts[0].strip()))
                     nf_values.append(float(parts[1].strip()))
                     magnitudes.append(float(parts[2].strip()))
                 except ValueError:
@@ -42,7 +40,7 @@ for file_path in sensor_files:
         all_ratios.append(ratio)
         trial_data.append({
             "path": file_path,
-            "timestamp": timestamps,
+            "number": numbers,
             "normal_force": nf_values,
             "magnitude": magnitudes
         })
@@ -50,7 +48,7 @@ for file_path in sensor_files:
 # Initial rough global ratio to test errors
 initial_radio_N = np.mean(all_ratios)
 
-# 2. Filter out trials where the maximum absolute error exceeds 0.3 N
+# 2. Filter out trials where the maximum absolute error exceeds 0.345 N
 error_threshold = 0.345
 n_window = 50
 valid_trial_data = []
@@ -59,7 +57,7 @@ filtered_ratios = []
 for data in trial_data:
     mag = np.array(data["magnitude"])
     nf_sensor = np.array(data["normal_force"])
-    timestamps = data["timestamp"]
+    numbers = data["number"]
     
     calculated_nf = mag * initial_radio_N
     
@@ -93,60 +91,73 @@ if not valid_trial_data:
     print("No valid trials to plot!")
     exit()
 
-# 4. Interpolate valid trials onto a common time grid for a clean conference aggregate plot
-min_max_time = min([data["timestamp"][-1] for data in valid_trial_data])
-common_time = np.linspace(0, min_max_time, 300)
+# 4. Interpolate valid trials onto a common time grid (in seconds) for clean aggregation
+min_max_frames = min([len(data["number"]) - n_window + 1 for data in valid_trial_data])
+min_max_duration = (min_max_frames - 1) / fps
+common_time = np.linspace(0, min_max_duration, 300)
 
 interp_sensors = []
 interp_calcs = []
+interp_errors = []
 
 for data in valid_trial_data:
     mag = np.array(data["magnitude"])
     nf_sensor = np.array(data["normal_force"])
-    timestamps = data["timestamp"]
+    numbers = data["number"]
     
     calculated_nf = mag * best_radio_N
     
     if len(calculated_nf) >= n_window:
         calc_smooth = np.convolve(calculated_nf, np.ones(n_window)/n_window, mode='valid')
         sensor_smooth = np.array(nf_sensor[n_window-1:])
-        plot_time = np.array(timestamps[n_window-1:])
+        plot_time = np.arange(len(calc_smooth)) / fps
     else:
         calc_smooth = calculated_nf
         sensor_smooth = np.array(nf_sensor)
-        plot_time = np.array(timestamps)
+        plot_time = np.arange(len(calc_smooth)) / fps
         
-    # Interpolate onto common time axis
+    error_N = calc_smooth - sensor_smooth
+    
+    # Interpolate onto shared time grid
     s_interp = np.interp(common_time, plot_time, sensor_smooth)
     c_interp = np.interp(common_time, plot_time, calc_smooth)
+    e_interp = np.interp(common_time, plot_time, error_N)
     
     interp_sensors.append(s_interp)
     interp_calcs.append(c_interp)
+    interp_errors.append(e_interp)
 
 mean_sensor = np.mean(interp_sensors, axis=0)
 mean_calc = np.mean(interp_calcs, axis=0)
-std_sensor = np.std(interp_sensors, axis=0)
 std_calc = np.std(interp_calcs, axis=0)
 
-# 5. Plot Colorful Yet B&W-Printable Aggregate Graph
-fig, ax = plt.subplots(figsize=(8, 5))
+mean_error = np.mean(interp_errors, axis=0)
+std_error = np.std(interp_errors, axis=0)
 
-# Plot mean Ground Truth (Solid Black) and Calculated (Dashed Dodgerblue)
-ax.plot(common_time, mean_sensor, color='black', linewidth=2.2, label='Mean Force Sensor (Ground Truth)')
-ax.plot(common_time, mean_calc, color='dodgerblue', linewidth=2, linestyle='--', label=f'Mean Calculated (radio_N = {best_radio_N:.5f})')
+# 5. Plot Clean Aggregate Curves against Time (seconds)
+fig, axs = plt.subplots(2, 1, figsize=(10, 8), sharex=True)
 
-# Add subtle standard deviation envelopes (distinct contrast shades)
-ax.fill_between(common_time, mean_sensor - std_sensor, mean_sensor + std_sensor, color='gray', alpha=0.15, label='Sensor Trial Spread (±1σ)')
-ax.fill_between(common_time, mean_calc - std_calc, mean_calc + std_calc, color='deepskyblue', alpha=0.15, label='Calculated Trial Spread (±1σ)')
+# Top Panel: Normal Force Comparison
+axs[0].plot(common_time, mean_sensor, color='black', linewidth=2, label='Force Sensor (Ground Truth)')
+axs[0].plot(common_time, mean_calc, color='dodgerblue', linewidth=2, linestyle='--', label='Calculated (Mean)')
+axs[0].fill_between(common_time, mean_calc - std_calc, mean_calc + std_calc, color='dodgerblue', alpha=0.2, label='±1σ Trial Spread')
+axs[0].set_title(f'Aggregate Normal Force Comparison (Filtered {len(valid_trial_data)} Trials, radio_N = {best_radio_N:.5f})', fontsize=11, fontweight='bold')
+axs[0].set_ylabel('Normal Force (N)')
+axs[0].grid(True, linestyle=':', alpha=0.7)
+axs[0].legend(loc='upper left', fontsize='small', framealpha=0.9)
 
-# Highlight the discrepancy gap in vibrant orange (which maps to a clear distinct shade in B&W)
-ax.fill_between(common_time, mean_sensor, mean_calc, color='orange', alpha=0.35, label='Aggregate Discrepancy Gap')
+# Bottom Panel: Aggregate Error Trend with Shaded Standard Deviation Band
+axs[1].plot(common_time, mean_error, color='crimson', linewidth=2, label='Mean Error (Detected - Measured)')
+axs[1].fill_between(common_time, mean_error - std_error, mean_error + std_error, color='crimson', alpha=0.2, label='±1σ Error Spread')
+axs[1].axhline(0, color='black', linestyle='-', linewidth=1)
+# axs[1].axhline(error_threshold, color='gray', linestyle='--', linewidth=1, alpha=0.7, label=f'+{error_threshold}N Threshold')
+# axs[1].axhline(-error_threshold, color='gray', linestyle='--', linewidth=1, alpha=0.7, label=f'-{error_threshold}N Threshold')
 
-ax.set_title('Aggregate Normal Force Progression & Discrepancy Gap Across Valid Trials', fontsize=11, fontweight='bold')
-ax.set_xlabel('Time (seconds)', fontsize=10)
-ax.set_ylabel('Normal Force (N)', fontsize=10)
-ax.grid(True, linestyle=':', alpha=0.7)
-ax.legend(loc='upper left', fontsize='small', framealpha=0.9)
+axs[1].set_title('Aggregate Normal Force Error vs Time', fontsize=11, fontweight='bold')
+axs[1].set_xlabel('Time (seconds)')
+axs[1].set_ylabel('Error (N)')
+axs[1].grid(True, linestyle=':', alpha=0.7)
+axs[1].legend(loc='upper left', fontsize='small', framealpha=0.9)
 
 fig.tight_layout()
 plt.show()
