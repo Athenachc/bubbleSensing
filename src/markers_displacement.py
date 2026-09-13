@@ -14,9 +14,36 @@ Marker Initial Position:
 import math
 import matplotlib.pyplot as plt
 
+# def process_sensor_data(file_path):
+#     frames = []
+#     # Store lists for each marker: {id: {'dx': [], 'dy': [], 'mag': []}}
+#     marker_data = {}
+
+#     with open(file_path, 'r') as file:
+#         for line in file:
+#             if line.startswith('#') or not line.strip():
+#                 continue
+#             data = [float(x.strip()) for x in line.split(',')]
+#             frame_num = int(data[0])
+#             coords = data[3:]
+            
+#             frames.append(frame_num)
+            
+#             for i in range(0, len(coords), 2):
+#                 mid = i // 2
+#                 dx, dy = coords[i], coords[i+1]
+#                 mag = math.sqrt(dx**2 + dy**2)
+                
+#                 if mid not in marker_data:
+#                     marker_data[mid] = {'dx': [], 'dy': [], 'mag': []}
+                
+#                 marker_data[mid]['dx'].append(dx)
+#                 marker_data[mid]['dy'].append(dy)
+#                 marker_data[mid]['mag'].append(mag)
+                
+#     return frames, marker_data
 def process_sensor_data(file_path):
     frames = []
-    # Store lists for each marker: {id: {'dx': [], 'dy': [], 'mag': []}}
     marker_data = {}
 
     with open(file_path, 'r') as file:
@@ -25,7 +52,7 @@ def process_sensor_data(file_path):
                 continue
             data = [float(x.strip()) for x in line.split(',')]
             frame_num = int(data[0])
-            coords = data[3:]
+            coords = data[2:]  # Updated slice index from 3 to 2
             
             frames.append(frame_num)
             
@@ -74,5 +101,5 @@ def plot_all_data(file_path):
     plt.show()
 
 # Run the process
-file_path = 'Sensor/Trial_20260713_222105/sensor.txt'
+file_path = 'Sensor/interaction_separate/Trial_20260813_234118/sensor.txt'
 plot_all_data(file_path)

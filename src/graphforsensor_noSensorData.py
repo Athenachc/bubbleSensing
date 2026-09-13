@@ -8,7 +8,7 @@ vectors_x, vectors_y, vector_mean_x, vector_mean_y = [], [], [], []
 new_magnitude, result_new_magnitude_plus = [], []
 
 # 2. DATA LOADING AND PARSING
-FILE_PATH = 'Sensor/Trial_20260713_221233/sensor.txt'
+FILE_PATH = 'Sensor/interaction_separate/Trial_20260813_234118/sensor.txt'
 with open(FILE_PATH, 'r') as file:
     for line in file:
         parts = line.strip().split(', ')
