@@ -70,7 +70,9 @@ def process_sensor_data(file_path):
         
         for i in range(0, len(coords) - 1, 2):
             mid = i // 2
-            dx, dy = coords[i], coords[i+1]
+            dx = coords[i]
+            # Invert dy so positive means UP
+            dy = -coords[i+1]
             
             if mid not in marker_data:
                 marker_data[mid] = {'dx': [], 'dy': [], 'direction': []}
@@ -85,7 +87,6 @@ def plot_dx_dy_with_initial_state(file_path, fps=30):
     frames, marker_data = process_sensor_data(file_path)
     time_sec = [f / fps for f in frames]
     
-    # Platform reference data provided by user (ignoring its original timestamps, mapping sequentially/by state index)
     platform_data = [
         {"t": 0.000,   "x": -0.228, "y": 0.228,  "Final_Direction": "NO-DRAG"},
         {"t": 6.767,   "x": -0.342, "y": 27.02,  "Final_Direction": "UP"},
@@ -98,7 +99,7 @@ def plot_dx_dy_with_initial_state(file_path, fps=30):
         {"t": 32.100,  "x": -19.84, "y": 23.60,  "Final_Direction": "UP-LEFT"}
     ]
     
-    # Map direction name to platform x and y values
+    # Keep platform y as-is (positive means UP) so both platform and markers follow the same convention
     dir_to_platform_xy = {item["Final_Direction"]: (item["x"], item["y"]) for item in platform_data}
     
     directions_list = ["NO-DRAG", "RIGHT", "UP-RIGHT", "UP", "UP-LEFT", "LEFT", "DOWN-LEFT", "DOWN", "DOWN-RIGHT"]
@@ -106,7 +107,6 @@ def plot_dx_dy_with_initial_state(file_path, fps=30):
     
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(14, 9), sharex=True)
     
-    # Create secondary Y-axes on the right side for the platform data
     ax1_plat = ax1.twinx()
     ax2_plat = ax2.twinx()
     
@@ -126,10 +126,8 @@ def plot_dx_dy_with_initial_state(file_path, fps=30):
         scatter1 = ax1.scatter(time_sec, data['dx'], facecolors='none', edgecolors=edge_colors, linewidths=0.8, s=75, marker=marker_style, alpha=0.95, label=label_name)
         ax2.scatter(time_sec, data['dy'], facecolors='none', edgecolors=edge_colors, linewidths=0.8, s=75, marker=marker_style, alpha=0.95, label=label_name)
     
-    # Extract synchronized platform trajectory matching each frame's detected direction
     plat_dx_vals = []
     plat_dy_vals = []
-    # Take direction sequence from any valid marker (e.g., marker 0)
     sample_directions = marker_data[0]['direction'] if 0 in marker_data else ["NO-DRAG"] * len(frames)
     
     for d in sample_directions:
@@ -140,7 +138,6 @@ def plot_dx_dy_with_initial_state(file_path, fps=30):
         plat_dx_vals.append(px)
         plat_dy_vals.append(py)
         
-    # Plot Platform curves on the right-hand side secondary axes
     line_plat_x = ax1_plat.plot(time_sec, plat_dx_vals, color='magenta', linestyle='-', linewidth=2.0, alpha=0.8, label='Platform X')
     line_plat_y = ax2_plat.plot(time_sec, plat_dy_vals, color='purple', linestyle='-', linewidth=2.0, alpha=0.8, label='Platform Y')
     
@@ -151,7 +148,7 @@ def plot_dx_dy_with_initial_state(file_path, fps=30):
     ax1.axhline(0, color='black', linewidth=1, linestyle='--')
     ax1.grid(True, linestyle=':', alpha=0.7)
     
-    ax2.set_title('Vertical Displacement (dy) & Platform Trajectory Colored by Direction', fontsize=12)
+    ax2.set_title('Vertical Displacement (dy) & Platform Trajectory Colored by Direction (Positive = Up)', fontsize=12)
     ax2.set_ylabel('Markers dy (px)')
     ax2_plat.set_ylabel('Platform Y (px)', color='purple')
     ax2_plat.tick_params(axis='y', labelcolor='purple')
@@ -161,7 +158,6 @@ def plot_dx_dy_with_initial_state(file_path, fps=30):
     
     fig.subplots_adjust(right=0.68, top=0.92, bottom=0.1, hspace=0.3)
     
-    # Combine legends for markers and platform lines on the right side panel area
     lines_1, labels_1 = ax1.get_legend_handles_labels()
     lines_plat1, labels_plat1 = ax1_plat.get_legend_handles_labels()
     ax1.legend(lines_1 + lines_plat1, labels_1 + labels_plat1, loc='center left', bbox_to_anchor=(1.12, 0.5), fontsize=8, title="Markers & Platform", framealpha=0.9)
