@@ -1,5 +1,6 @@
 import math
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 import numpy as np
 import pandas as pd
 
@@ -90,6 +91,7 @@ def plot_dx_dy_with_initial_state(file_path, fps=30):
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(14, 9), sharex=True)
     
     cmap = plt.get_cmap('tab10', len(directions_list))
+    norm = plt.Normalize(vmin=-0.5, vmax=8.5)
     
     scatter1 = None
     for mid, data in marker_data.items():
@@ -99,16 +101,18 @@ def plot_dx_dy_with_initial_state(file_path, fps=30):
         label_name = f"M{mid}: {desc} ({pos_info[0]}, {pos_info[1]})"
         numeric_dirs = [dir_to_idx.get(d, 0) for d in data['direction']]
         
-        # Reduced marker size (s=10) so individual points are distinct and easier to read
-        scatter1 = ax1.scatter(time_sec, data['dx'], c=numeric_dirs, cmap=cmap, vmin=-0.5, vmax=8.5, s=10, marker=marker_style, alpha=0.9, label=label_name)
-        ax2.scatter(time_sec, data['dy'], c=numeric_dirs, cmap=cmap, vmin=-0.5, vmax=8.5, s=10, marker=marker_style, alpha=0.9, label=label_name)
+        edge_colors = cmap(norm(numeric_dirs))
+        
+        # Increased marker size (s=75) and edge linewidth (1.5) for better visibility
+        scatter1 = ax1.scatter(time_sec, data['dx'], facecolors='none', edgecolors=edge_colors, linewidths=0.8, s=75, marker=marker_style, alpha=0.95, label=label_name)
+        ax2.scatter(time_sec, data['dy'], facecolors='none', edgecolors=edge_colors, linewidths=0.8, s=75, marker=marker_style, alpha=0.95, label=label_name)
     
-    ax1.set_title('Horizontal Displacement (dx) Colored by Direction & Unique Marker Shapes', fontsize=12)
+    ax1.set_title('Horizontal Displacement (dx) with Hollow Shapes Colored by Direction', fontsize=12)
     ax1.set_ylabel('dx (px)')
     ax1.axhline(0, color='black', linewidth=1, linestyle='--')
     ax1.grid(True, linestyle=':', alpha=0.7)
     
-    ax2.set_title('Vertical Displacement (dy) Colored by Direction & Unique Marker Shapes', fontsize=12)
+    ax2.set_title('Vertical Displacement (dy) with Hollow Shapes Colored by Direction', fontsize=12)
     ax2.set_ylabel('dy (px)')
     ax2.axhline(0, color='black', linewidth=1, linestyle='--')
     ax2.grid(True, linestyle=':', alpha=0.7)
@@ -120,7 +124,9 @@ def plot_dx_dy_with_initial_state(file_path, fps=30):
     
     if scatter1 is not None:
         cbar_ax = fig.add_axes([0.91, 0.15, 0.018, 0.7])
-        cbar = fig.colorbar(scatter1, cax=cbar_ax, ticks=range(len(directions_list)))
+        sm = cm.ScalarMappable(cmap=cmap, norm=norm)
+        sm.set_array([])
+        cbar = fig.colorbar(sm, cax=cbar_ax, ticks=range(len(directions_list)))
         cbar.set_ticklabels(directions_list)
         cbar.set_label('Direction Classification')
     
