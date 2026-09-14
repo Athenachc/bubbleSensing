@@ -52,7 +52,6 @@ def process_sensor_data(file_path):
             continue
             
         try:
-            # Sliced up to -1 to exclude the trailing text column (e.g., Final_Direction)
             coords = row.iloc[2:-1].values.astype(float)
         except ValueError:
             continue
@@ -88,7 +87,7 @@ def plot_dx_dy_with_initial_state(file_path, fps=30):
     directions_list = ["NO-DRAG", "RIGHT", "UP-RIGHT", "UP", "UP-LEFT", "LEFT", "DOWN-LEFT", "DOWN", "DOWN-RIGHT"]
     dir_to_idx = {d: i for i, d in enumerate(directions_list)}
     
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(14, 8), sharex=True)
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(14, 9), sharex=True)
     
     cmap = plt.get_cmap('tab10', len(directions_list))
     
@@ -100,23 +99,24 @@ def plot_dx_dy_with_initial_state(file_path, fps=30):
         label_name = f"M{mid}: {desc} ({pos_info[0]}, {pos_info[1]})"
         numeric_dirs = [dir_to_idx.get(d, 0) for d in data['direction']]
         
-        scatter1 = ax1.scatter(time_sec, data['dx'], c=numeric_dirs, cmap=cmap, vmin=-0.5, vmax=8.5, s=22, marker=marker_style, alpha=0.85, label=label_name)
-        ax2.scatter(time_sec, data['dy'], c=numeric_dirs, cmap=cmap, vmin=-0.5, vmax=8.5, s=22, marker=marker_style, alpha=0.85, label=label_name)
+        # Reduced marker size (s=10) so individual points are distinct and easier to read
+        scatter1 = ax1.scatter(time_sec, data['dx'], c=numeric_dirs, cmap=cmap, vmin=-0.5, vmax=8.5, s=10, marker=marker_style, alpha=0.9, label=label_name)
+        ax2.scatter(time_sec, data['dy'], c=numeric_dirs, cmap=cmap, vmin=-0.5, vmax=8.5, s=10, marker=marker_style, alpha=0.9, label=label_name)
     
-    ax1.set_title('Horizontal Displacement (dx) Colored by Direction Classification')
+    ax1.set_title('Horizontal Displacement (dx) Colored by Direction & Unique Marker Shapes', fontsize=12)
     ax1.set_ylabel('dx (px)')
     ax1.axhline(0, color='black', linewidth=1, linestyle='--')
-    ax1.grid(True)
+    ax1.grid(True, linestyle=':', alpha=0.7)
     
-    ax2.set_title('Vertical Displacement (dy) Colored by Direction Classification')
+    ax2.set_title('Vertical Displacement (dy) Colored by Direction & Unique Marker Shapes', fontsize=12)
     ax2.set_ylabel('dy (px)')
     ax2.axhline(0, color='black', linewidth=1, linestyle='--')
-    ax2.grid(True)
+    ax2.grid(True, linestyle=':', alpha=0.7)
     ax2.set_xlabel('Time (seconds)')
     
     fig.subplots_adjust(right=0.71, top=0.92, bottom=0.1, hspace=0.3)
     
-    ax1.legend(loc='center left', bbox_to_anchor=(1.05, 0.5), fontsize=8, title="Initial States & Markers")
+    ax1.legend(loc='center left', bbox_to_anchor=(1.05, 0.5), fontsize=8, title="Initial States & Markers", framealpha=0.9)
     
     if scatter1 is not None:
         cbar_ax = fig.add_axes([0.91, 0.15, 0.018, 0.7])
